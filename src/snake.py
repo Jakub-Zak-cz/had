@@ -1,10 +1,10 @@
-# Snake the videogame coded with python run on pygame
+# Snake the video game coded with Python using Pygame
 # 
-# Autors : Jakub Zak
-# Colaborators : Jakub Senkyr
+# Author: Jakub Zak
+# Collaborators: Jakub Senkyr
 #
-# Version : 0.0
-# adding pygame
+# Version: 1.0
+# Adding Pygame
 import sys
 import pygame
 import random
@@ -12,29 +12,44 @@ import random
 pygame.init()
 
 window_resolution = (800, 600)
+cell_size = 40  # Size of each cell on the chessboard
 
 window = pygame.display.set_mode(window_resolution)
 
+# Music
+# Initialize mixer for music
+pygame.mixer.init()
+
+# Load music
+pygame.mixer.music.load("src/assets/Kevin MacLeod - Pixelland.mp3")
+# Set music repetition to infinite (you can change it as needed)
+pygame.mixer.music.play(-1)
+
 class Food:
     def __init__(self):
+        self.image = pygame.image.load("src/assets/food.png")  # Our food image
+        self.image = pygame.transform.scale(self.image, (cell_size, cell_size))  # Adjust image size
         self.position = (0, 0)
         self.is_food_on_screen = False
         self.spawn_food()
 
     def spawn_food(self):
-        self.position = (random.randint(0, (window_resolution[0] // 10) - 1) * 10, 
-                         random.randint(0, (window_resolution[1] // 10) - 1) * 10)
+        self.position = (random.randint(0, (window_resolution[0] // cell_size) - 1) * cell_size, 
+                         random.randint(0, (window_resolution[1] // cell_size) - 1) * cell_size)
         self.is_food_on_screen = True
 
     def render(self, surface):
-        pygame.draw.rect(surface, (255, 0, 0), (*self.position, 10, 10))
+        surface.blit(self.image, self.position)
+
 
 class Snake:
     def __init__(self):
+        self.head_image = pygame.image.load("src/assets/head.png")  # Our snake head image
+        self.head_image = pygame.transform.scale(self.head_image, (cell_size, cell_size))  # Adjust image size
         self.length = 1
         self.positions = [((window_resolution[0] // 2), (window_resolution[1] // 2))]
         self.direction = (1, 0)
-        self.speed = 10
+        self.speed = cell_size
 
     def get_head_position(self):
         return self.positions[0]
@@ -42,10 +57,10 @@ class Snake:
     def eat(self, food):
         head_position = self.get_head_position()
         if (
-            head_position[0] < food.position[0] + 10 and
-            head_position[0] + 10 > food.position[0] and
-            head_position[1] < food.position[1] + 10 and
-            head_position[1] + 10 > food.position[1]
+            head_position[0] < food.position[0] + cell_size and
+            head_position[0] + cell_size > food.position[0] and
+            head_position[1] < food.position[1] + cell_size and
+            head_position[1] + cell_size > food.position[1]
         ):
             self.length += 1
             food.spawn_food()
@@ -56,7 +71,7 @@ class Snake:
         x, y = self.direction
         new = (cur[0] + x * self.speed, cur[1] + y * self.speed)
         
-        # Implementace "teleportace" na druhou stranu, když narazí na okraj
+        # Implementation of "teleportation" to the other side when hitting the edge
         new = (new[0] % window_resolution[0], new[1] % window_resolution[1])
         
         if len(self.positions) > 2 and new in self.positions[2:]:
@@ -80,23 +95,29 @@ class Snake:
         food.spawn_food()
 
     def render(self, surface):
-        for p in self.positions:
-            pygame.draw.rect(surface, (0, 255, 0), (p[0], p[1], 10, 10))
+        for idx, p in enumerate(self.positions):
+            if idx == 0:
+                surface.blit(self.head_image, p)
+            else:
+                color = (0, 0, 255)  # Snake body color
+                pygame.draw.rect(surface, color, (p[0], p[1], cell_size, cell_size))
 
-# Vytvoření instance hada a potravy
+
+# Create instances of snake and food
 snake = Snake()
 food = Food()
 
-# Hlavní smyčka hry
+# Main game loop
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            pygame.mixer.music.stop()
             pygame.quit()
             sys.exit()
 
     keyword_pressed = pygame.key.get_pressed()
 
-    # Změna směru hada
+    # Change snake direction
     if keyword_pressed[pygame.K_UP]:
         snake.direction = (0, -1)
     elif keyword_pressed[pygame.K_DOWN]:
@@ -106,11 +127,17 @@ while True:
     elif keyword_pressed[pygame.K_RIGHT]:
         snake.direction = (1, 0)
 
-    snake.update(food)
-
     window.fill((255, 255, 255))
+
+    # Draw chessboard
+    for i in range(0, window_resolution[0], cell_size):
+        for j in range(0, window_resolution[1], cell_size):
+            color = (0, 255, 0) if (i // cell_size + j // cell_size) % 2 == 0 else (0, 200, 0)
+            pygame.draw.rect(window, color, (i, j, cell_size, cell_size))
+
+    snake.update(food)
     snake.render(window) 
     food.render(window)   
     
     pygame.display.update()
-    pygame.time.Clock().tick(30)
+    pygame.time.Clock().tick(15)
